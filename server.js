@@ -1,14 +1,21 @@
 var express = require("express");
-var app = express();
 var cookeiParser = require("cookie-parser");
 var bodyParser = require("body-parser");
+var validator = require("express-validator");
 var ejs = require("ejs");
 var engine = require("ejs-mate");
 var session = require("express-session");
 var MongoStore = require('connect-mongo')(session);
 var mongoose = require('mongoose');
+var passport = require("passport");
+var flash = require("connect-flash");
 
+var app = express();
+
+mongoose.Promise = global.Promise;
 mongoose.connect('mongodb://localhost/rateme');
+
+require('./config/passport');
 
 app.use(express.static("public"));
 app.engine("ejs", engine);
@@ -17,6 +24,8 @@ app.use(cookeiParser());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
+app.use(validator());
+
 app.use(session({
   secret: 'Thisismytestkey.', 
   resave: false,
@@ -24,7 +33,12 @@ app.use(session({
   store: new MongoStore({mongooseConnection: mongoose.connection})
 }));
 
-require('./routes/user')(app);
+app.use(flash());
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+require('./routes/user')(app, passport);
 
 
 app.listen('3000', function(){
